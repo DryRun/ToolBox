@@ -1,0 +1,10 @@
+#	Git ignore
+
+*.pyc
+*.db
+*.swp
+*.swo
+*.swn
+*.swm
+*.root
+
