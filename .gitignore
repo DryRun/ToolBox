@@ -1,7 +1,7 @@
 #	Git ignore
 
 *.pyc
-*.db
+*.db*
 *.swp
 *.swo
 *.swn
