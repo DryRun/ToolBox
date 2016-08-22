@@ -14,6 +14,14 @@ import logging
 
 thismodule = sys.modules[__name__]
 
+def listRuns(ptype):
+    if ptype=="904":
+        l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
+        l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
+        return l1.append(l2)
+    else:
+        return []
+
 def alreadyLocked(lockpath):
     if shell.exists(lockpath): return True
     shell.touch(lockpath)
@@ -109,7 +117,7 @@ def process():
     #   external try
     try:
         #   configure the current processing
-        runlist = glob.glob(os.path.join(cfg.poolsource, cfg.pattern))
+        runlist = listRuns(cfg.ptype)
         (conn, cur) = dbscripts.open()
         if alreadyLocked(cfg.process_lock): 
             logging.info("process(): Lockfile exists")

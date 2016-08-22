@@ -1,3 +1,4 @@
+ptype = "904"
 poolsource = "."
 pattern = "USC_*.root"
 process_lock = "process.lock"
