@@ -13,6 +13,7 @@ sys.path.append(pathToToolBox)
 #	Imports
 #
 import subprocess, glob, time
+import logging
 
 #	
 #	File System Management
@@ -66,7 +67,7 @@ def split(pathfile):
 def join(path, filename):
 	return os.path.join(path, filename)
 
-def execute(cmd):
+def execute(cmd_as_list):
 	out="";err="";rt=100
 	try:
 		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -74,9 +75,10 @@ def execute(cmd):
 		rt = p.returncode
 		return out,err, rt
 	except Exception as exc:
-		print exc.args
-		print out,err
+            logging.error("shell_functions:execute() Error %s with message %s:" % 
+                type(exc).__name__, str(exc.args))
 	finally:
+                logging.debug((out, err, rt))
 		return out,err,rt
 
 if __name__=="__main__":

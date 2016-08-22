@@ -19,12 +19,26 @@ def alreadyLocked(lockpath):
     shell.touch(lockpath)
     return False
 
-def process_cmssw(*args):
+def process_cmssw(*kargs, **wargs):
     logging.debug("Runing process_cmssw()")
+    runType = wargs["runType"]
+    filepath = wargs["filepath"]
+    cmd_as_list = cfg.cmsRun_cmd_template.format(cmssw_config=cfg.cmssw_config,
+        pathToFileName=filepath, runType=runType).split(" ")
+    logging.debug(cmd_as_list)
     return 0
 
-def upload_dqmgui(*args):
+def upload_dqmgui(*kargs, **wargs):
     logging.debug("Running process_dqmgui()")
+    runNumber = wargs["runNumber"]
+    runType = wargs["runType"]
+    fileToUpload = os.path.join(cfg.cmssw_outputpool, 
+        cfg.cmssw_output_template.format(runNumber=runNumber, runType=runType))
+    cmd_as_list = cfg.dqmupload_cmd_template.format(
+        server_name=cfg.dqmgui_server_name,
+        pathnameToFile=fileToUpload
+    ).split(" ")
+    logging.debug(cmd_as_list)
     return 0
 
 def reCreate():
@@ -52,7 +66,8 @@ def upload():
         runsToUpload = cur.execute(q).fetchall()
         for run in runsToUpload:
             try:
-                rt = upload_dqmgui(run)
+                rt = upload_dqmgui(runNumber=run[0],
+                    runType=run[1])
                 run_number = run[0]
                 if rt==0:
                     q = '''
@@ -100,13 +115,17 @@ def process():
             logging.info("process(): Lockfile exists")
             return
        
+        #   build the CMSSW
+#        shell.execute(["cd", cfg.cmssw_src_directory])
+#        shell.execute(["scram", "b", "-j", "8"])
+
         #   internal try
         logging.debug(runlist)
         for f in runlist:
             try:
-                f = f.split("/")[-1]
-                run_number = res.getRunNumber("local", f)
-                run_type = "test"
+                fstripped = f.split("/")[-1]
+                run_number = res.getRunNumber("local", fstripped)
+                run_type = res.getRunType("904", f)
                 size = 100000
                 logging.debug((run_number, run_type, size))
 
@@ -128,7 +147,8 @@ def process():
                     ''' % (run_number, run_type, 0, dbcfg.processing)
                     logging.debug(q)
                     cur.execute(q)
-                    rt =  process_cmssw(run_number, run_type)
+                    rt =  process_cmssw(runType=run_type,
+                        filepath=f)
                     if rt==0:
                         q = '''
                         UPDATE Runs

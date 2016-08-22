@@ -2,7 +2,18 @@ poolsource = "."
 pattern = "USC_*.root"
 process_lock = "process.lock"
 upload_lock = "upload.lock"
+cmssw_config = "config.py"
+cmssw_outputpool = "/pool"
+cmssw_output_template = "DQM_V0001_R{runNumber}__{runType}__Commissioning2016__DQMIO.root"
+cmsRun_cmd_template = "cmsRun {cmssw_config}.py inputFiles=file:{pathToFileName} runType={runType}"
 
+dqmgui_server_name = "cmshcaldqm-vm.cern.ch:8070/dqm/online-dev"
+dqmupload_cmd_template = "visDQMUpoad http://{server_name} {pathnameToFile}"
+
+#
+#   TODO
+#
+#   P5 Run Type Extraction Configuration
 run_type_patterns = ["pedestal", "led", "laser", "raddam"]
 laser_type_patterns = ["megatile", "sipm", "pmt", "hpd"]
 laser_subdet_patterns = ["hbhe", "hbm", "hbp", "hem", "hep",

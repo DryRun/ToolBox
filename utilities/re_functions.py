@@ -13,6 +13,17 @@ def getRunNumber(ptype, filename):
     else:
         pass
 
+def getRunType(ptype, filepath):
+    if ptype=="904":
+        if "PED" in filepath:
+            return "PEDESTAL"
+        elif "LED" in filepath:
+            return "LED"
+        else:
+            return "UNKNOWNTYPE"
+    else:
+        return "UNKNOWNTYPE"
+
 def match_path(path):
     """
     Match Path to the ROOT Object in the ROOT TFile
