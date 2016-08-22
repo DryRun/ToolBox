@@ -46,7 +46,9 @@ def printDB():
 class SQLException(Exception):
     """Define a customary exception class"""
     def __init__(self, args):
-        self.args = args
+	    logging.debug(args)
+	    self.msg = args
+	    self.args = args
 
 if __name__=="__main__":
     main()

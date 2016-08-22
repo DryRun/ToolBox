@@ -85,14 +85,16 @@ def reupload():
 			                cur.execute(q)
 				else:
 					raise dbscripts.SQLException("DQMGUI Uploading failed for record=%s" % str(run))
-			except dbscripts.SQLException as exc:
+			except Exception as exc:
+				q = '''
+		                UPDATE Runs 
+				SET status=%d
+		                WHERE run_number=%d;
+				''' % (dbcfg.uploading_failed, runNumber)
 				logging.debug(q)
 		                cur.execute(q)
 				logging.error("upload(): Error %s with message: %s" % (
 					type(exc).__name__, exc.args))
-			except Exception as exc:
-				logging.error("upload(): Error %s with message: %s" % (
-					type(exc).__name__, str(exc.args)))
 			finally:
 				conn.commit()
 	except Exception as exc:
@@ -131,7 +133,7 @@ def upload():
                     cur.execute(q)
                 else:
                     raise dbscripts.SQLException("DQMGUI Uploading failed for record=%s" % str(run))
-            except dbscripts.SQLException as exc:
+            except Exception as exc:
                 q = '''
                 UPDATE Runs 
                 SET status=%d
@@ -140,10 +142,7 @@ def upload():
                 logging.debug(q)
                 cur.execute(q)
                 logging.error("upload(): Error %s with message: %s" % (
-                    type(exc).__name__, str(exc.args)))
-            except Exception as exc:
-                logging.error("upload(): Error %s with message: %s" % (
-                    type(exc).__name__, str(exc.args)))
+                    type(exc).__name__, exc.args))
             finally:
                 conn.commit()
     except Exception as exc:
@@ -208,9 +207,8 @@ def process():
                         ''' % (dbcfg.processed, run_number)
                         cur.execute(q)
                     else:
-                        raise dbscripts.SQLException("CMSSW Processing failed for record=%s" % (
-                           str(run_number, run_type)))
-            except dbscripts.SQLException as exc:
+                        raise dbscripts.SQLException("CMSSW Processing failed for record=%s" % str(run_number))
+            except Exception as exc:
                 q = '''
                 UPDATE Runs 
                 SET status=%d
@@ -218,15 +216,12 @@ def process():
                 ''' % (dbcfg.processing_failed, run_number)
                 cur.execute(q)
                 logging.error("process(): Error %s with message: %s" % (
-                    type(exc).__name__, str(exc.args)))
-            except Exception as exc:
-                logging.error("process(): Error %s with message: %s" % (
-                    type(exc).__name__, str(exc.args)))
+                    type(exc).__name__, exc.msg))
             finally:
                 conn.commit()
     except Exception as exc:
         logging.error("process(): Exception caught: %s %s" % (
-            type(exc).__name__, str(exc.args)))
+            type(exc).__name__, exc.args))
     finally:
         conn.commit()
         conn.close()
