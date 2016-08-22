@@ -7,4 +7,5 @@
 *.swn
 *.swm
 *.root
-*.log
+*.log*
+*.lock
