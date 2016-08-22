@@ -70,15 +70,19 @@ def join(path, filename):
 def execute(cmd_as_list):
 	out="";err="";rt=100
 	try:
-		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		logging.debug(cmd_as_list)
+		p = subprocess.Popen(cmd_as_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		out, err = p.communicate()
 		rt = p.returncode
+		logging.debug(rt)
 		return out,err, rt
 	except Exception as exc:
             logging.error("shell_functions:execute() Error %s with message %s:" % 
                 type(exc).__name__, str(exc.args))
 	finally:
-                logging.debug((out, err, rt))
+                logging.debug(out)
+		logging.debug(err)
+		logging.debug(rt)
 		return out,err,rt
 
 if __name__=="__main__":

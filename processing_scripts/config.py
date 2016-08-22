@@ -1,15 +1,16 @@
 ptype = "904"
-poolsource = "."
-pattern = "USC_*.root"
+poolsource = "/data"
+pattern = "B904_Integration_*.root"
 process_lock = "process.lock"
 upload_lock = "upload.lock"
-cmssw_config = "config.py"
-cmssw_outputpool = "/pool"
+cmssw_config = "/afs/cern.ch/work/c/cmshcaldqm/HCALDQM/904/CMSSW_8_0_17_toProcess904/src/hcal_dqm_local_cfg.py"
+cmssw_outputpool = "/home/HCALDQM/output"
+cmssw_src_directory = "/afs/cern.ch/work/c/cmshcaldqm/HCALDQM/904/CMSSW_8_0_17_toProcess904/src"
 cmssw_output_template = "DQM_V0001_R{runNumber}__{runType}__Commissioning2016__DQMIO.root"
-cmsRun_cmd_template = "cmsRun {cmssw_config}.py inputFiles=file:{pathToFileName} runType={runType}"
+cmsRun_cmd_template = "cmsRun {cmssw_config} inputFiles=file:{pathToFileName} runType={runType}"
 
 dqmgui_server_name = "cmshcaldqm-vm.cern.ch:8070/dqm/online-dev"
-dqmupload_cmd_template = "visDQMUpoad http://{server_name} {pathnameToFile}"
+dqmupload_cmd_template = "visDQMUpload http://{server_name} {pathnameToFile}"
 
 #
 #   TODO

@@ -8,10 +8,12 @@ import re
 template = "/(\w+)"
 
 def getRunNumber(ptype, filename):
-    if ptype=="local":
-        return int(filename[4:-5])
-    else:
-        pass
+	if ptype=="local":
+		return int(filename[4:-5])
+	elif ptype=="904":
+		return int(filename[17:-5])
+	else:
+		return -1
 
 def getRunType(ptype, filepath):
     if ptype=="904":

@@ -16,11 +16,14 @@ thismodule = sys.modules[__name__]
 
 def listRuns(ptype):
     if ptype=="904":
-        l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
-        l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
-        return l1.append(l2)
+		l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
+		l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
+		logging.debug(l1)
+		logging.debug(l2)
+		return l1 + l2
     else:
-        return []
+		logging.debug("Here Here Here")
+		return []
 
 def alreadyLocked(lockpath):
     if shell.exists(lockpath): return True
@@ -28,26 +31,28 @@ def alreadyLocked(lockpath):
     return False
 
 def process_cmssw(*kargs, **wargs):
-    logging.debug("Runing process_cmssw()")
-    runType = wargs["runType"]
-    filepath = wargs["filepath"]
-    cmd_as_list = cfg.cmsRun_cmd_template.format(cmssw_config=cfg.cmssw_config,
-        pathToFileName=filepath, runType=runType).split(" ")
-    logging.debug(cmd_as_list)
-    return 0
+	logging.debug("Runing process_cmssw()")
+	runType = wargs["runType"]
+	filepath = wargs["filepath"]
+	cmd_as_list = cfg.cmsRun_cmd_template.format(cmssw_config=cfg.cmssw_config,
+		pathToFileName=filepath, runType=runType).split(" ")
+	logging.debug(cmd_as_list)
+	out, err, rt = shell.execute(cmd_as_list)
+	return rt
 
 def upload_dqmgui(*kargs, **wargs):
-    logging.debug("Running process_dqmgui()")
-    runNumber = wargs["runNumber"]
-    runType = wargs["runType"]
-    fileToUpload = os.path.join(cfg.cmssw_outputpool, 
-        cfg.cmssw_output_template.format(runNumber=runNumber, runType=runType))
-    cmd_as_list = cfg.dqmupload_cmd_template.format(
-        server_name=cfg.dqmgui_server_name,
-        pathnameToFile=fileToUpload
-    ).split(" ")
-    logging.debug(cmd_as_list)
-    return 0
+	logging.debug("Running process_dqmgui()")
+	runNumber = wargs["runNumber"]
+	runType = wargs["runType"]
+	fileToUpload = os.path.join(cfg.cmssw_outputpool, 
+		cfg.cmssw_output_template.format(runNumber=runNumber, runType=runType))
+	cmd_as_list = cfg.dqmupload_cmd_template.format(
+		server_name=cfg.dqmgui_server_name,
+		pathnameToFile=fileToUpload
+	).split(" ")
+	logging.debug(cmd_as_list)
+	out,err,rt = shell.execute(cmd_as_list)
+	return rt
 
 def reCreate():
     dbscripts.reCreate()
@@ -57,6 +62,45 @@ def create():
 
 def printDB():
     dbscripts.printDB()
+
+def reupload():
+	try:
+		(conn, cur) = dbscripts.open()
+		q = '''
+	        SELECT * FROM Runs WHERE status=%d
+		''' % dbcfg.uploading_failed
+		runsToReupload = cur.execute(q).fetchall()
+		for run in runsToReupload:
+			try:
+				rt = upload_dqmgui(runNumber=run[0],
+					runType=run[1])
+				runNumber = run[0]
+				if rt==0:
+					q = '''
+					UPDATE Runs
+					SET status=%d
+					WHERE run_number=%d
+					''' % (dbcfg.uploaded, runNumber)
+					logging.debug(q)
+			                cur.execute(q)
+				else:
+					raise dbscripts.SQLException("DQMGUI Uploading failed for record=%s" % str(run))
+			except dbscripts.SQLException as exc:
+				logging.debug(q)
+		                cur.execute(q)
+				logging.error("upload(): Error %s with message: %s" % (
+					type(exc).__name__, exc.args))
+			except Exception as exc:
+				logging.error("upload(): Error %s with message: %s" % (
+					type(exc).__name__, str(exc.args)))
+			finally:
+				conn.commit()
+	except Exception as exc:
+                logging.error("reupload(): Error %s with message: %s" % (
+                    type(exc).__name__, str(exc.args)))
+	finally:
+		conn.commit()
+	        conn.close()
 
 def upload():
     """
@@ -117,23 +161,22 @@ def process():
     #   external try
     try:
         #   configure the current processing
-        runlist = listRuns(cfg.ptype)
-        (conn, cur) = dbscripts.open()
-        if alreadyLocked(cfg.process_lock): 
-            logging.info("process(): Lockfile exists")
-            return
-       
-        #   build the CMSSW
-#        shell.execute(["cd", cfg.cmssw_src_directory])
-#        shell.execute(["scram", "b", "-j", "8"])
+	runlist = listRuns(cfg.ptype)
+	logging.debug("RunList: " + str(runlist))
+	(conn, cur) = dbscripts.open()
+	if alreadyLocked(cfg.process_lock): 
+		logging.info("process(): Lockfile exists")
+		return
+	#   build the CMSSW
+	shell.execute(["cd", cfg.cmssw_src_directory])
+	shell.execute(["scram", "b", "-j", "8"])
 
         #   internal try
-        logging.debug(runlist)
         for f in runlist:
             try:
                 fstripped = f.split("/")[-1]
-                run_number = res.getRunNumber("local", fstripped)
-                run_type = res.getRunType("904", f)
+                run_number = res.getRunNumber(cfg.ptype, fstripped)
+                run_type = res.getRunType(cfg.ptype, f)
                 size = 100000
                 logging.debug((run_number, run_type, size))
 
@@ -200,10 +243,12 @@ def main():
         help="Function to be executed", default="test")
     parser.add_option("-l", "--logfile", dest="logfile", help="Log File pathname",
         default='./log.log')
+    parser.add_option("-v", action="store_true", dest="verbose", default=True)
+    parser.add_option("-q", action="store_false", dest="verbose")
     (options, args) = parser.parse_args()
 
     #   init the logging
-    lvl = logging.DEBUG
+    lvl = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(filename=options.logfile, level=lvl)
 
     # decide what to process
