@@ -14,17 +14,6 @@ import logging
 
 thismodule = sys.modules[__name__]
 
-def listRuns(ptype):
-    if ptype=="904":
-		l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
-		l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
-		logging.debug(l1)
-		logging.debug(l2)
-		return l1 + l2
-    else:
-		logging.debug("Here Here Here")
-		return []
-
 def alreadyLocked(lockpath):
     if shell.exists(lockpath): return True
     shell.touch(lockpath)
@@ -160,7 +149,7 @@ def process():
     #   external try
     try:
         #   configure the current processing
-	runlist = listRuns(cfg.ptype)
+	runlist = res.listRuns(ptype)
 	logging.debug("RunList: " + str(runlist))
 	(conn, cur) = dbscripts.open()
 	if alreadyLocked(cfg.process_lock): 
@@ -176,7 +165,9 @@ def process():
                 fstripped = f.split("/")[-1]
                 run_number = res.getRunNumber(cfg.ptype, fstripped)
                 run_type = res.getRunType(cfg.ptype, f)
-                size = 100000
+                size = shell.getsize(f)
+                if not res.shouldProcess(run_number=run_number, 
+                    run_type=run_type, size=size, cfg=cfg): continue
                 logging.debug((run_number, run_type, size))
 
                 #   query our db

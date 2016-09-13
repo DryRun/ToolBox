@@ -1,3 +1,4 @@
+min_runnumber_to_process = 280534
 ptype = "904"
 poolsource = "/data"
 pattern = "B904_Integration_*.root"

@@ -1,11 +1,43 @@
 """
 Predefine some common REs for HCAL DQM format. 
 Predefine some commond patterns for files...
+Predefine some functions to discover files based on patterns
 """
 
 import re
 
 template = "/(\w+)"
+
+import logging
+import glob
+
+def shouldProcess(**wargs):
+    runnumber = wargs["run_number"]
+    runtype = wargs["run_type"]
+    size = wargs["size"]
+    cfg = wargs["cfg"]
+    if cfg.ptype=="local":
+        for t in cfg.run_type_patterns:
+            if t in runtype and runnumber>=cfg.min_runnumber_to_process:
+                return True
+        return False
+    elif cfg.ptype=="904":
+        return True
+    else:
+        return False
+
+def listRuns(cfg):
+    if cfg.ptype=="local":
+        logging.debug("Local Run Type Listing")
+        return glob.glob(os.path.join(cfg.poolsource, "*.root"))
+    elif cfg.ptype=="904":
+        l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
+        l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
+        logging.debug(l1)
+        logging.debug(l2)
+        return l1+l2
+    else:
+        return []
 
 def getRunNumber(ptype, filename):
 	if ptype=="local":
