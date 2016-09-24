@@ -7,26 +7,33 @@ import os, sys, glob
 pathToToolBox = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToToolBox)
 import logging
+import wbm_http_simple_parser as parser
+import httplib
+import utilities.shell_functions as shell
 
-def query(cfg, run_number):
+def query(cfg, **wargs):
     if cfg.ptype=="local":
-        return query_local(cfg, run_number)
+        return query_local(cfg, **wargs)
     elif cfg.ptype=="minidaq":
-        return query_minidaq(cfg, run_number)
+        return query_minidaq(cfg, **wargs)
     else:
         return
 
-def query_local(cfg, run_number):
+def query_local(cfg, **wargs):
+    """
+    Returns the run type
+    """
     def parse(out):
         out = out.split("\n")[0]
         logging.debug(out)
-        v = out.rstrip(".xml").split("_")
+        v = out[:-4].split("_")
         v = v[1:]
         t = ""
         for x in v:
             t+=x.lower()
         logging.debug(t)
         return t
+    run_number = wargs["run_number"]
     quantity = "CONFIG_NEW"
     selector_type = cfg.quantitymap[quantity][0]
     selector_name = cfg.quantitymap[quantity][1]
@@ -37,10 +44,24 @@ def query_local(cfg, run_number):
     out, err, rt = shell.execute(cmd.split(" "))
     return parse(out)
 
-def query_minidaq(cfg, run_number):
-    pass
+def query_minidaq(cfg, **wargs):
+    """
+    Returns a fed enable mask string
+    """
+    run_number = wargs["run_number"]
+    conn = httplib.HTTPConnection("cmswbm2.cms")
+    conn.request("GET", "/cmsdb/servlet/RunParameters?RUNNUMBER=%d" % run_number)
+    r = conn.getresponse()
+    parser.parser.feed(r.read().replace("_hwcfgKey", "TESTTAG"))
+    s = ""
+    for x in parser.parser.feds:
+        s+=x
+#    logging.debug(s)
+    return s
 
 if __name__=="__main__":
     logging.basicConfig(level=logging.DEBUG)
-    import processing_scripts.config as cfg
-    print query(cfg, 280535)
+    import processing_scripts.config_minidaq as cfg
+    s = query_minidaq(cfg, run_number=280509)
+    logging.debug(s)
+#     donprint query(cfg, 280535)

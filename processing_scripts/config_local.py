@@ -1,7 +1,7 @@
 min_runnumber_to_process = 280534
-ptype = "904"
-poolsource = "/data"
-pattern = "B904_Integration_*.root"
+ptype = "local"
+poolsource = "/hcaldepot1/data"
+pattern = "*.root"
 process_lock = "process.lock"
 upload_lock = "upload.lock"
 cmssw_config = "/afs/cern.ch/work/c/cmshcaldqm/HCALDQM/904/CMSSW_8_0_17_toProcess904/src/hcal_dqm_local_cfg.py"

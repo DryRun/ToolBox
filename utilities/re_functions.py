@@ -11,34 +11,6 @@ template = "/(\w+)"
 import logging
 import glob
 
-def shouldProcess(**wargs):
-    runnumber = wargs["run_number"]
-    runtype = wargs["run_type"]
-    size = wargs["size"]
-    cfg = wargs["cfg"]
-    if cfg.ptype=="local":
-        for t in cfg.run_type_patterns:
-            if t in runtype and runnumber>=cfg.min_runnumber_to_process:
-                return True
-        return False
-    elif cfg.ptype=="904":
-        return True
-    else:
-        return False
-
-def listRuns(cfg):
-    if cfg.ptype=="local":
-        logging.debug("Local Run Type Listing")
-        return glob.glob(os.path.join(cfg.poolsource, "*.root"))
-    elif cfg.ptype=="904":
-        l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
-        l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
-        logging.debug(l1)
-        logging.debug(l2)
-        return l1+l2
-    else:
-        return []
-
 def getRunNumber(ptype, filename):
 	if ptype=="local":
 		return int(filename[4:-5])
@@ -46,17 +18,6 @@ def getRunNumber(ptype, filename):
 		return int(filename[17:-5])
 	else:
 		return -1
-
-def getRunType(ptype, filepath):
-    if ptype=="904":
-        if "PED" in filepath:
-            return "PEDESTAL"
-        elif "LED" in filepath:
-            return "LED"
-        else:
-            return "UNKNOWNTYPE"
-    else:
-        return "UNKNOWNTYPE"
 
 def match_path(path):
     """
