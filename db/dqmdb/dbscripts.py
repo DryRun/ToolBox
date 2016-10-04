@@ -6,21 +6,17 @@ various examples of db scripts
 import os, sys
 pathToToolBox = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToToolBox)
-import config as cfg
 import sqlite3 as dbms
 import utilities.shell_functions as shell
 import logging
 
-def main():
-    create()
-
-def open():
-    conn = dbms.connect(cfg.dbpathname)
+def open(dbpathname):
+    conn = dbms.connect(dbpathname)
     cur = conn.cursor()
     return (conn, cur)
 
-def create(table_name):
-    (conn, cur) = open()
+def create(dbpathname, table_name):
+    (conn, cur) = open(dbpathname)
 
     #   create the Run Table
     q = ''' CREATE TABLE {table_name}
@@ -30,12 +26,12 @@ def create(table_name):
     conn.commit()
     conn.close()
 
-def reCreate():
-    shell.rm(cfg.dbpathname)
+def reCreate(dbpathname):
+    shell.rm(dbpathname)
     create()
 
-def printDB(table_name):
-    (conn, cur) = open()
+def printDB(dbpathname, table_name):
+    (conn, cur) = open(dbpathname)
     q = ''' SELECT * FROM {table_name}
     '''.format(table_name=table_name)
     logging.debug(q)

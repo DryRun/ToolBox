@@ -5,9 +5,6 @@ import sys, os
 pathToToolBox = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToToolBox)
 
-#   db 
-dbpathname = os.path.join(pathToToolBox, "dqmdb.db")
-
 #   define status codes
 not_tobe_processed = -1
 processing = 0
