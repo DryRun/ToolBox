@@ -168,7 +168,7 @@ def process():
 		return
 	#   build the CMSSW
 	shell.execute(["cd", cfg.cmssw_src_directory])
-	shell.execute(["scram", "b", "-j", "8"])
+	#shell.execute(["scram", "b", "-j", "8"])
 
         #   internal try
         for f in runlist:

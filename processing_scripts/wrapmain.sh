@@ -3,9 +3,11 @@
 cron_processing_type=$1
 
 #	prepare the env vars
+WORKHOME=/afs/cern.ch/work/c/cmshcaldqm
 source $WORKHOME/HCALDQM/ToolBox/env.sh
 DQMGUI_BASE=/home/HCALDQM/GUI
 CMSSW_HCALDQM_BASE=/afs/cern.ch/work/c/cmshcaldqm/HCALDQM/904/CMSSW_8_0_17_toProcess904/src
+export SCRAM_ARCH=slc6_amd64_gcc493
 
 echo $DQMGUI_BASE
 echo $CMSSW_HCALDQM_BASE
