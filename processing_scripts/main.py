@@ -38,6 +38,8 @@ def process_cmssw(*kargs, **wargs):
 		pathToFileName=filepath, runType=runType).split(" ")
 	logging.debug(cmd_as_list)
 	out, err, rt = shell.execute(cmd_as_list)
+        logging.info(out)
+        logging.debug(err)
 	return rt
 
 def upload_dqmgui(*kargs, **wargs):
@@ -52,6 +54,8 @@ def upload_dqmgui(*kargs, **wargs):
 	).split(" ")
 	logging.debug(cmd_as_list)
 	out,err,rt = shell.execute(cmd_as_list)
+        logging.info(out)
+        logging.debug(err)
 	return rt
 
 def reCreate():

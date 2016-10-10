@@ -18,13 +18,13 @@ if [ $cron_processing_type -eq 0 ];
 then
 	#	Commend this guy in if you have DQM GUI actually avaialable
 	source $DQMGUI_BASE/current/apps/dqmgui/128/etc/profile.d/env.sh
-	python $HCALDQMTOOLBOX/processing_scripts/main.py --function=upload --logfile=$HCALDQMTOOLBOX/processing_scripts/upload.log -q
+	python $HCALDQMTOOLBOX/processing_scripts/main.py -v --function=upload --logfile=$HCALDQMTOOLBOX/processing_scripts/upload.log -q
 elif [ $cron_processing_type -eq 1 ]; then
 	cd $CMSSW_HCALDQM_BASE
 	source /afs/cern.ch/cms/cmsset_default.sh 
 	eval `scramv1 runtime -sh`
-	python $HCALDQMTOOLBOX/processing_scripts/main.py --function=process --logfile=$HCALDQMTOOLBOX/processing_scripts/process.log -q
+	python $HCALDQMTOOLBOX/processing_scripts/main.py -v --function=process --logfile=$HCALDQMTOOLBOX/processing_scripts/process.log -q
 else
 	source $DQMGUI_BASE/current/apps/dqmgui/128/etc/profile.d/env.sh
-	python $HCALDQMTOOLBOX/processing_scripts/main.py --function=reupload --logfile=$HCALDQMTOOLBOX/processing_scripts/upload.log -q
+	python $HCALDQMTOOLBOX/processing_scripts/main.py -v --function=reupload --logfile=$HCALDQMTOOLBOX/processing_scripts/upload.log -q
 fi
