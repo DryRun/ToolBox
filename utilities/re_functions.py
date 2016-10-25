@@ -1,11 +1,15 @@
 """
 Predefine some common REs for HCAL DQM format. 
 Predefine some commond patterns for files...
+Predefine some functions to discover files based on patterns
 """
 
 import re
 
 template = "/(\w+)"
+
+import logging
+import glob
 
 def getRunNumber(ptype, filename):
 	if ptype=="local":
@@ -14,17 +18,6 @@ def getRunNumber(ptype, filename):
 		return int(filename[17:-5])
 	else:
 		return -1
-
-def getRunType(ptype, filepath):
-    if ptype=="904":
-        if "PED" in filepath:
-            return "PEDESTAL"
-        elif "LED" in filepath:
-            return "LED"
-        else:
-            return "UNKNOWNTYPE"
-    else:
-        return "UNKNOWNTYPE"
 
 def match_path(path):
     """
@@ -53,6 +46,8 @@ def match_filename(filename, convention="Online"):
     if convention == "Offline":
         r = re.match("^DQM_V(\d+)_R(\d+)((__[-A-Za-z0-9_]+){3})\.root$",
             filename)
+        l = r.groups()
+        d["run"] = int(l[1])
     elif convention == "Online" : 
         r = re.match("^DQM_V(\d+)(_[A-Za-z0-9]+)?_R(\d+)\.root$",
             filename)
@@ -63,5 +58,5 @@ def match_filename(filename, convention="Online"):
     return d
 
 if __name__=="__main__":
-    d = match_filename("DQM_V0001_Hcal_R000266421.root")
+    d = match_filename("DQM_V0001_R000165121__Global__CMSSW_X_Y_Z__RECO.root", "Offline")
     print d

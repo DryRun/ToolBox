@@ -5,10 +5,8 @@ import sys, os
 pathToToolBox = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToToolBox)
 
-#   db 
-dbpathname = os.path.join(pathToToolBox, "rundb.db")
-
 #   define status codes
+not_tobe_processed = -1
 processing = 0
 processed = 1
 uploaded = 2

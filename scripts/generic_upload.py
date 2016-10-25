@@ -8,22 +8,58 @@ sys.path.append(pathToToolBox)
 import config as cfg
 import db.dqmdb.dbscripts as dbscripts
 import db.dqmdb.config as dbcfg
+import db.wbm.runinfo as wbm
 import utilities.shell_functions as shell
 import utilities.re_functions as res
 import logging
 
 thismodule = sys.modules[__name__]
 
-def listRuns(ptype):
-    if ptype=="904":
-		l1 = glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern))
-		l2 = glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
-		logging.debug(l1)
-		logging.debug(l2)
-		return l1 + l2
-    else:
-		logging.debug("Here Here Here")
-		return []
+def listRuns(cfg):
+    if cfg.ptype=="local":
+        logging.debug("Local Run Type Listing")
+        return glob.glob(os.path.join(cfg.poolsource, "*.root"))
+    elif cfg.ptype=="minidaq":
+        pass
+    elif cfg.ptype=="904":
+        return glob.glob(os.path.join(cfg.poolsource, "LED", cfg.pattern)) + glob.glob(os.path.join(cfg.poolsource, "PED", cfg.pattern))
+    else: return None
+
+def shouldProcess(cfg, **wargs):
+    if cfg.ptype=="local":
+        run_number = wargs["run_number"]
+        run_type = wargs["run_type"]
+        for t in cfg.run_type_patterns:
+            if t in run_type and run_number>=cfg.min_runnumber_to_process:
+                return True
+        return False
+    elif cfg.ptype == "minidaq":
+        feds = wbm.query(cfg, **wargs)
+        hcalfeds = range(700, 732) + range(1100, 1200)
+        for hfed in hcalfeds:
+            if str(hfed) in feds:
+                return True
+        return False
+    elif cfg.ptype=="904":
+        return True
+    else: 
+        return False
+
+def getRunType(cfg, **wargs):
+    if cfg.ptype=="904":
+        filepath = wargs["filepath"]
+        if "PED" in filepath:
+            return "pedestal"
+        elif "LED" in filepath:
+            return "led"
+        else:
+            return None
+    elif cfg.ptype=="local":
+        return wbm.query(cfg, **wargs)
+    elif cfg.ptype=="minidaq":
+        return "minidaq"
+    else: return None
+
 
 def alreadyLocked(lockpath):
     if shell.exists(lockpath): return True
@@ -38,8 +74,6 @@ def process_cmssw(*kargs, **wargs):
 		pathToFileName=filepath, runType=runType).split(" ")
 	logging.debug(cmd_as_list)
 	out, err, rt = shell.execute(cmd_as_list)
-        logging.info(out)
-        logging.debug(err)
 	return rt
 
 def upload_dqmgui(*kargs, **wargs):
@@ -54,8 +88,6 @@ def upload_dqmgui(*kargs, **wargs):
 	).split(" ")
 	logging.debug(cmd_as_list)
 	out,err,rt = shell.execute(cmd_as_list)
-        logging.info(out)
-        logging.debug(err)
 	return rt
 
 def reCreate():
@@ -164,7 +196,7 @@ def process():
     #   external try
     try:
         #   configure the current processing
-	runlist = listRuns(cfg.ptype)
+	runlist = res.listRuns(ptype)
 	logging.debug("RunList: " + str(runlist))
 	(conn, cur) = dbscripts.open()
 	if alreadyLocked(cfg.process_lock): 
@@ -172,7 +204,7 @@ def process():
 		return
 	#   build the CMSSW
 	shell.execute(["cd", cfg.cmssw_src_directory])
-	#shell.execute(["scram", "b", "-j", "8"])
+	shell.execute(["scram", "b", "-j", "8"])
 
         #   internal try
         for f in runlist:
@@ -180,7 +212,9 @@ def process():
                 fstripped = f.split("/")[-1]
                 run_number = res.getRunNumber(cfg.ptype, fstripped)
                 run_type = res.getRunType(cfg.ptype, f)
-                size = 100000
+                size = shell.getsize(f)
+                if not res.shouldProcess(run_number=run_number, 
+                    run_type=run_type, size=size, cfg=cfg): continue
                 logging.debug((run_number, run_type, size))
 
                 #   query our db

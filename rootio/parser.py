@@ -5,15 +5,15 @@
 #	Returns 
 #
 
-import sys, os
+import sys, os, glob
 import ROOT as R
 
 #	to import utilities module
-pathToUtilities = os.environ["HCALDQMUTILITIES"]
+pathToUtilities = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToUtilities)
-import Utils.Shell as Shell
-import Utils.IO as IO
-import Utils.RE as RE
+import utilities.re_functions as res
+import utilities.shell_functions as shell
+import logging
 
 #	define the Parser class
 class Parser:
@@ -23,21 +23,22 @@ class Parser:
         - keys represent the full path to the object as it appears in the ROOT 
         - values represent the TObject
 	"""
-	def __init__(self, pathfile, isDQMFormat=True):
+	def __init__(self, pathfile, isDQMFormat=True, convention="Online", 
+            subsystem="Hcal"):
 		"""
 		Get the Run Number. Open the file and cd to the Run Summary Directory
 		Initialize whatever is needed
 		"""
-                
-                path, filename = Shell.split(pathfile)
+                logging.debug("Parsing the file")                
+                path, filename = shell.split(pathfile)
                 if isDQMFormat:
-                    tokens = RE.match_filename(filename)
+                    tokens = res.match_filename(filename=filename, convention=convention)
         	    self.__rootFileName = pathfile
     		    self.__runNumber = tokens["run"]
 		    self.__rootFile = R.TFile(self.__rootFileName, "r")
 		    self.__rsDir = self.__rootFile.GetDirectory(
 		        "DQMData/Run %d/%s/Run summary/" % (self.__runNumber, 
-                        tokens["subsystem"]))
+                        tokens["subsystem"] if convention=="Online" else subsystem))
                 else:
                     self.__rootFileName = pathfile
                     self.__rootFile = R.TFile(self.__rootFileName, "r")
@@ -77,8 +78,8 @@ class Parser:
 
 if __name__=="__main__":
 	print "Hello"
-	fileName = "/Users/vk/research/tmptmp/DQM_V0001_Hcal_R000262548.root"
-	parser = Parser(fileName)
+	fileName = "/Users/vk/software/HCALDQM/tmp/DQM_V0001_R000165121__Global__CMSSW_X_Y_Z__RECO.root"
+	parser = Parser(pathfile=fileName, convention="Offline")
 	d = parser.traverse()
 	print d
 

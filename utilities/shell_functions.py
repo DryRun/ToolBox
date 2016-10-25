@@ -79,6 +79,7 @@ def execute(cmd_as_list):
 	except Exception as exc:
             logging.error("shell_functions:execute() Error %s with message %s:" % 
                 type(exc).__name__, str(exc.args))
+            out = None; err=None; rt = None
 	finally:
                 logging.debug(out)
 		logging.debug(err)
