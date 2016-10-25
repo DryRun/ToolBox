@@ -17,7 +17,6 @@ def open(dbpathname):
 
 def create(dbpathname, table_name):
     (conn, cur) = open(dbpathname)
-
     #   create the Run Table
     q = ''' CREATE TABLE {table_name}
     (run_number INTEGER, run_type TEXT, num_events INTEGER, status INTEGER);
@@ -26,9 +25,9 @@ def create(dbpathname, table_name):
     conn.commit()
     conn.close()
 
-def reCreate(dbpathname):
+def reCreate(dbpathname, table_name):
     shell.rm(dbpathname)
-    create()
+    create(dbpathname, table_name)
 
 def printDB(dbpathname, table_name):
     (conn, cur) = open(dbpathname)
@@ -38,6 +37,32 @@ def printDB(dbpathname, table_name):
     rows = cur.execute(q).fetchall()
     for r in rows:
         logging.debug(r)
+
+def query_select(**wargs):
+    result = None
+    try:
+        (conn, cur) = open(wargs["dbpathname"]) 
+        result = cur.execute(wargs["query"]).fetchall()
+    except Exception as exc:
+        logging.error("dbscripts.query_select(): Error %s with message: %s" % (
+            type(exc).__name__, exc.msg))
+        result = None
+    finally:
+        conn.close()
+        return result
+
+    return result
+
+def query_update(**wargs):
+    try:
+        (conn, cur) = open(wargs["dbpathname"])
+        cur.execute(wargs["query"])
+    except Exception as exc:
+        logging.error("dbscripts.query_select(): Error %s with message: %s" % (
+            type(exc).__name__, exc.msg))
+    finally:
+        conn.commit()
+        conn.close()
 
 class SQLException(Exception):
     """Define a customary exception class"""
