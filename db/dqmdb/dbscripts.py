@@ -47,4 +47,4 @@ class SQLException(Exception):
 	    self.args = args
 
 if __name__=="__main__":
-    main()
+    pass

@@ -13,10 +13,13 @@ import utilities.shell_functions as shell
 
 def query(cfg, **wargs):
     if cfg.ptype=="local":
+        logging.debug("Local WBM Query")
         return query_local(cfg, **wargs)
     elif cfg.ptype=="minidaq":
+        logging.debug("Minidaq WBM Query")
         return query_minidaq(cfg, **wargs)
     else:
+        logging.debug("No WBM Query")
         return
 
 def query_local(cfg, **wargs):
@@ -42,6 +45,7 @@ def query_local(cfg, **wargs):
         cfg.sql_template, selector_type, selector_name, str(run_number))
     logging.debug(cmd)
     out, err, rt = shell.execute(cmd.split(" "))
+    logging.debug(out); logging.debug(rt); logging.debug(err)
     return parse(out)
 
 def query_minidaq(cfg, **wargs):

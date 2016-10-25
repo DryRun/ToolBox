@@ -8,10 +8,13 @@ pathToToolBox = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToToolBox)
 
 import logging
+import time
 import utilities.shell_functions as shell
 import db.wbm.runinfo as wbm
 import config_fiberid as cfg
 import db.dqmdb.config as dbcfg
+import db.dqmdb.dbscripts as dbscripts
+import utilities.re_functions as res
 
 thismodule = sys.modules[__name__]
 
@@ -57,28 +60,34 @@ def execute(filepath):
     logging.error(err)
     return rt
 
+def createDB():
+    dbscripts.create(cfg.dbpathname, cfg.table_name)
+
 def process():
     """
     process something
     """
     logging.info("Running function process")
     try:
-        runlist = listRuns(cfg.ptype)
+        runlist = listRuns(cfg)
         logging.debug("RunList: " + str(runlist))
         (conn, cur) = dbscripts.open(cfg.dbpathname)
         if alreadyLocked(cfg.process_lock):
             logging.info("process(): Lockfile exists")
             return
 
+        logging.debug("Starting the Run Loop")
         #   do initialization before looping over all files
         for f in runlist:
             try:
                 fstripped = f.split("/")[-1]
+                logging.debug(fstripped)
                 run_number = res.getRunNumber(cfg.ptype, fstripped)
-                run_type = res.getRunType(cfg.ptype, f)
+                logging.debug(run_number)
+                run_type = getRunType(cfg, run_number=run_number)
+                logging.debug((run_number, run_type))
                 if not shouldProcess(run_number=run_number,
                     run_type=run_type, cfg=cfg): continue
-                logging.debug((run_number, run_type))
                 q = '''
                 SELECT * FROM %s WHERE run_number=%d;
                 ''' % (cfg.table_name, run_number)
@@ -93,7 +102,7 @@ def process():
                 else:
                     q = '''
                     INSERT INTO %s Values(%d, '%s', %d, %d);
-                    ''' % (table_name, run_number, run_type, 0, dbcfg.processing)
+                    ''' % (cfg.table_name, run_number, run_type, 0, dbcfg.processing)
                     logging.debug(q)
                     cur.execute(q)
                     rt = execute(filepath=f)
@@ -114,7 +123,7 @@ def process():
                 ''' % (cfg.table_name, dbcfg.processing_failed, run_number)
                 cur.execute(q)
                 logging.error("process(): Error %s with message: %s" % (
-                    type(exc).__name__, exc.msg))
+                    type(exc).__name__, exc.args))
             finally:
                 conn.commit()
     except Exception as exc:
