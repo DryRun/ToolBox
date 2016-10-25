@@ -5,7 +5,7 @@ process Runs
 import os, sys, glob
 pathToToolBox = os.environ["HCALDQMTOOLBOX"]
 sys.path.append(pathToToolBox)
-import config as cfg
+import config_904 as cfg
 import db.dqmdb.dbscripts as dbscripts
 import db.dqmdb.config as dbcfg
 import db.wbm.runinfo as wbm
@@ -20,15 +20,24 @@ def listRuns(cfg):
     List all the runs
     """
     if cfg.ptype=="904":
-        cmd = "eos ls %s" % cfg.poolsource
+        cmd = "%s ls %s" % (cfg.eosexe, cfg.poolsource)
         out, err, rt = shell.execute(cmd.split(" "))
-        return out
+	logging.debug(err)
+	logging.debug(rt)
+	return out.split("\n")[:-1]
     else: return None
 
-def listFullFilePath(f):
-    cmd = "eos ls %" % (os.path.join(cfg.poolsource, f))
+def listFullFilePath(cfg, f):
+    cmd = "%s ls %s/" % (cfg.eosexe, os.path.join(cfg.poolsource, f))
+    logging.debug(cmd)
     out, err, rt = shell.execute(cmd.split())
-    return os.path.join(cfg.poolsource, f, out)
+    logging.debug(err); logging.debug(out), logging.debug(rt)
+    out = out.split("\n")
+    l = []
+    for o in out:
+        if ".root" in o:
+	    l.append(os.path.join(cfg.poolsource, f, o))
+    return l[0]
 
 def shouldProcess(cfg, **wargs):
     if cfg.ptype=="904":
@@ -72,7 +81,7 @@ def process_cmssw(*kargs, **wargs):
 	logging.debug(cmd_as_list)
 	out, err, rt = shell.execute(cmd_as_list)
         logging.info(out)
-        logging.debug(err)
+        logging.info(err)
 	return rt
 
 def upload_dqmgui(*kargs, **wargs):
@@ -88,7 +97,7 @@ def upload_dqmgui(*kargs, **wargs):
 	logging.debug(cmd_as_list)
 	out,err,rt = shell.execute(cmd_as_list)
         logging.info(out)
-        logging.debug(err)
+        logging.info(err)
 	return rt
 
 def reCreateDB():
@@ -105,8 +114,8 @@ def reupload():
 	try:
 		(conn, cur) = dbscripts.open()
 		q = '''
-	        SELECT * FROM Runs WHERE status=%d
-		''' % dbcfg.uploading_failed
+	        SELECT * FROM %s WHERE status=%d
+		''' % (cfg.table_name, dbcfg.uploading_failed)
 		runsToReupload = cur.execute(q).fetchall()
 		for run in runsToReupload:
 			try:
@@ -115,20 +124,20 @@ def reupload():
 				runNumber = run[0]
 				if rt==0:
 					q = '''
-					UPDATE Runs
+					UPDATE %s
 					SET status=%d
 					WHERE run_number=%d
-					''' % (dbcfg.uploaded, runNumber)
+					''' % (cfg.table_name, dbcfg.uploaded, runNumber)
 					logging.debug(q)
 			                cur.execute(q)
 				else:
 					raise dbscripts.SQLException("DQMGUI Uploading failed for record=%s" % str(run))
 			except Exception as exc:
 				q = '''
-		                UPDATE Runs 
+		                UPDATE %s 
 				SET status=%d
 		                WHERE run_number=%d;
-				''' % (dbcfg.uploading_failed, runNumber)
+				''' % (cfg.table_name, dbcfg.uploading_failed, runNumber)
 				logging.debug(q)
 		                cur.execute(q)
 				logging.error("upload(): Error %s with message: %s" % (
@@ -147,13 +156,9 @@ def upload():
     upload files that are processed
     """
     try:
-        if alreadyLocked(cfg.upload_lock): 
-            logging.info("upload(): Lockfile exists")
-            return
-        
         q = '''
-        SELECT * FROM Runs WHERE status=%d
-        ''' % dbcfg.processed
+        SELECT * FROM %s WHERE status=%d
+        ''' % (cfg.table_name, dbcfg.processed)
         runsToUpload = dbscripts.query_select(query=q, dbpathname=cfg.dbpathname)
         for run in runsToUpload:
             try:
@@ -162,20 +167,20 @@ def upload():
                 run_number = run[0]
                 if rt==0:
                     q = '''
-                    UPDATE Runs 
+                    UPDATE %s 
                     SET status=%d
                     WHERE run_number=%d;
-                    ''' % (dbcfg.uploaded, run_number)
+                    ''' % (cfg.table_name, dbcfg.uploaded, run_number)
                     logging.debug(q)
                     dbscripts.query_update(dbpathname=cfg.dbpathname, query=q)
                 else:
                     raise dbscripts.SQLException("DQMGUI Uploading failed for record=%s" % str(run))
             except Exception as exc:
                 q = '''
-                UPDATE Runs 
+                UPDATE %s 
                 SET status=%d
                 WHERE run_number=%d;
-                ''' % (dbcfg.uploading_failed, run_number)
+                ''' % (cfg.table_name, dbcfg.uploading_failed, run_number)
                 logging.debug(q)
                 dbscripts.query_update(dbpathname=cfg.dbpathname, query=q)
                 logging.error("upload(): Error %s with message: %s" % (
@@ -185,21 +190,17 @@ def upload():
     except Exception as exc:
         pass
     finally:
-        shell.rm(cfg.upload_lock)
+	pass
 
 def process():
     """
     process something
     """
-
     #   external try
     try:
         #   configure the current processing
-	runlist = listRuns(ptype)
+	runlist = listRuns(cfg)
 	logging.debug("RunList: " + str(runlist))
-	if alreadyLocked(cfg.process_lock): 
-		logging.info("process(): Lockfile exists")
-		return
 	#   build the CMSSW
 	shell.execute(["cd", cfg.cmssw_src_directory])
 	#shell.execute(["scram", "b", "-j", "8"])
@@ -207,13 +208,16 @@ def process():
         #   internal try
         for f in runlist:
             try:
-                f = listFilePath(f)
+		logging.debug(f)
+                f = listFullFilePath(cfg, f)
+		logging.debug(f)
                 fstripped = f.split("/")[-1]
+		logging.debug(fstripped)
                 run_number = res.getRunNumber(cfg.ptype, fstripped)
                 run_type = getRunType(cfg, run_number=run_number)
                 if not shouldProcess(run_number=run_number, 
                     run_type=run_type, cfg=cfg): continue
-                logging.debug((run_number, run_type, size))
+                logging.debug((run_number, run_type))
 
                 #
                 #   query our db
@@ -221,12 +225,12 @@ def process():
                 #   inefficient - but given processing time of cmssw, it's negligible
                 #   
                 q = '''
-                SELECT * FROM Runs WHERE run_number=%d;
-                ''' % run_number
+                SELECT * FROM %s WHERE run_number=%d;
+                ''' % (cfg.table_name, run_number)
                 logging.debug(q)
                 results = dbscripts.query_select(dbpathname=cfg.dbpathname,
                     query=q)
-                if result==None: continue
+                if results==None: continue
 
                 logging.debug(results)
                 if len(results)==1:
@@ -236,8 +240,8 @@ def process():
                     raise Exception("More than 1 Record for run_number=%d" % run_number)
                 else: # if it's ==0
                     q = '''
-                    INSERT INTO Runs Values(%d, '%s', %d, %d);
-                    ''' % (run_number, run_type, 0, dbcfg.processing)
+                    INSERT INTO %s Values(%d, '%s', %d, %d);
+                    ''' % (cfg.table_name, run_number, run_type, 0, dbcfg.processing)
                     logging.debug(q)
                     dbscripts.query_update(dbpathname=cfg.dbpathname,
                         query=q)
@@ -246,10 +250,10 @@ def process():
                         filepath=f)
                     if rt==0:
                         q = '''
-                        UPDATE Runs
+                        UPDATE %s
                         SET status=%d
                         WHERE run_number=%d;
-                        ''' % (dbcfg.processed, run_number)
+                        ''' % (cfg.table_name, dbcfg.processed, run_number)
                         dbscripts.query_update(dbpathname=cfg.dbpathname,
                             query=q)
 
@@ -257,24 +261,38 @@ def process():
                         raise dbscripts.SQLException("CMSSW Processing failed for record=%s" % str(run_number))
             except Exception as exc:
                 q = '''
-                UPDATE Runs 
+                UPDATE %s 
                 SET status=%d
                 WHERE run_number=%d;
-                ''' % (dbcfg.processing_failed, run_number)
+                ''' % (cfg.table_name, dbcfg.processing_failed, run_number)
                 dbscripts.query_update(dbpathname=cfg.dbpathname,
                     query=q)
                 logging.error("process(): Error %s with message: %s" % (
-                    type(exc).__name__, exc.msg))
+                    type(exc).__name__, exc.args))
             finally:
                 pass
     except Exception as exc:
         logging.error("process(): Exception caught: %s %s" % (
             type(exc).__name__, exc.args))
     finally:
-        shell.rm(cfg.process_lock)
-
+	pass
+    
 def test():
     logging.info("Running function test")
+
+def test_listRuns():
+    runs = listRuns(cfg)
+    logging.debug(runs)
+
+def test_getRunType():
+    runnumber = "1000023533"
+    rtype = getRunType(cfg, run_number=runnumber)
+    logging.debug(rtype)
+
+def test_listFullFilePath():
+    f = "run1000023541"
+    path = listFullFilePath(cfg, f)
+    logging.debug(path)
 
 def main():
     #   parsing options
@@ -303,7 +321,8 @@ def main():
             func = getattr(thismodule, options.functionName)
             func()
         except Exception as exc:
-            logging.error("main(): Exception")
+            logging.error("main(): Exception %s with message %s" % (
+		type(exc).__name__, exc.args))
         finally:
             logging.info("Finished Function=%s at %s" % (options.functionName,
                 shell.gettimedate()))

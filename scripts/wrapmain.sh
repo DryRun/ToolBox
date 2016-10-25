@@ -1,3 +1,4 @@
+#!/bin/bash
 
 #	either upload (0) or process (1)
 cron_processing_type=$1
@@ -13,18 +14,40 @@ echo $DQMGUI_BASE
 echo $CMSSW_HCALDQM_BASE
 echo $SCRAM_ARCH
 
+processing_904_lock=/tmp/processing_904.lock
+uploading_904_lock=/tmp/uploading_904.lock
+
 #	we are ready - either upload or process
 if [ $cron_processing_type -eq 0 ];
 then
-	#	Commend this guy in if you have DQM GUI actually avaialable
+	#	exit if it has already been locked
+	if [ -f $uploading_904_lock ];
+	then
+		exit
+	else
+		touch $uploading_904_lock
+	fi
+	#	source and upload
 	source $DQMGUI_BASE/current/apps/dqmgui/128/etc/profile.d/env.sh
-	python $HCALDQMTOOLBOX/processing_scripts/main.py -v --function=upload --logfile=$HCALDQMTOOLBOX/processing_scripts/upload.log -q
+	python $HCALDQMTOOLBOX/scripts/main_904.py -v --function=upload --logfile=$HCALDQMTOOLBOX/scripts/upload_904.log -q
+	rm $uploading_904_lock
 elif [ $cron_processing_type -eq 1 ]; then
+	#	lock it up
+	if [ -f $processing_904_lock ];
+	then
+		exit
+	else
+		touch $processing_904_lock
+	fi
+	#	process
 	cd $CMSSW_HCALDQM_BASE
 	source /afs/cern.ch/cms/cmsset_default.sh 
 	eval `scramv1 runtime -sh`
-	python $HCALDQMTOOLBOX/processing_scripts/main.py -v --function=process --logfile=$HCALDQMTOOLBOX/processing_scripts/process.log -q
+	cd $HCALDQMTOOLBOX/scripts
+	export TNS_ADMIN=/afs/cern.ch/project/oracle/admin
+	python $HCALDQMTOOLBOX/scripts/main_904.py -v --function=process --logfile=$HCALDQMTOOLBOX/scripts/process_904.log -q
+	rm $processing_904_lock
 else
 	source $DQMGUI_BASE/current/apps/dqmgui/128/etc/profile.d/env.sh
-	python $HCALDQMTOOLBOX/processing_scripts/main.py -v --function=reupload --logfile=$HCALDQMTOOLBOX/processing_scripts/upload.log -q
+	python $HCALDQMTOOLBOX/scripts/main.py -v --function=reupload --logfile=$HCALDQMTOOLBOX/scripts/upload.log -q
 fi

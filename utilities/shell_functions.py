@@ -75,7 +75,6 @@ def execute(cmd_as_list):
 		out, err = p.communicate()
 		rt = p.returncode
 		logging.debug(rt)
-		return out,err, rt
 	except Exception as exc:
             logging.error("shell_functions:execute() Error %s with message %s:" % 
                 type(exc).__name__, str(exc.args))

@@ -45,7 +45,7 @@ def query_select(**wargs):
         result = cur.execute(wargs["query"]).fetchall()
     except Exception as exc:
         logging.error("dbscripts.query_select(): Error %s with message: %s" % (
-            type(exc).__name__, exc.msg))
+            type(exc).__name__, exc.args))
         result = None
     finally:
         conn.close()
@@ -59,7 +59,7 @@ def query_update(**wargs):
         cur.execute(wargs["query"])
     except Exception as exc:
         logging.error("dbscripts.query_select(): Error %s with message: %s" % (
-            type(exc).__name__, exc.msg))
+            type(exc).__name__, exc.args))
     finally:
         conn.commit()
         conn.close()
@@ -69,6 +69,7 @@ class SQLException(Exception):
     def __init__(self, args):
 	    logging.debug(args)
 	    self.msg = args
+	    self.args = args
 	    self.args = args
 
 if __name__=="__main__":

@@ -1,3 +1,4 @@
+eosexe = "/afs/cern.ch/project/eos/installation/0.3.84-aquamarine/bin/eos.select"
 ptype = "904"
 poolsource = "root://eoscms.cern.ch//eos/cms/store/group/dpg_hcal/comm_hcal/B904/"
 process_lock = "process_904.lock"
@@ -11,5 +12,6 @@ cmsRun_cmd_template = "cmsRun {cmssw_config} inputFiles={pathToFileName} runType
 dqmgui_server_name = "cmshcaldqm-vm.cern.ch:8070/dqm/online-dev"
 dqmupload_cmd_template = "visDQMUpload http://{server_name} {pathnameToFile}"
 
-dbpathname = "./904runs.db"
-table_name = "904Runs"
+dbpathname = "/afs/cern.ch/work/c/cmshcaldqm/HCALDQM/ToolBox/904runs.db"
+table_name = "Runs"
+oracledbstring = "cms_hcl_test_runinfo/run2013info@cms_orcoff_prep"
