@@ -20,6 +20,7 @@ uploading_904_lock=/tmp/uploading_904.lock
 #	we are ready - either upload or process
 if [ $cron_processing_type -eq 0 ];
 then
+	trap "rm $uploading_904_lock; exit" SIGHUP SIGINT SIGTERM
 	#	exit if it has already been locked
 	if [ -f $uploading_904_lock ];
 	then
@@ -32,6 +33,7 @@ then
 	python $HCALDQMTOOLBOX/scripts/main_904.py -v --function=upload --logfile=$HCALDQMTOOLBOX/scripts/upload_904.log -q
 	rm $uploading_904_lock
 elif [ $cron_processing_type -eq 1 ]; then
+	trap "rm $processing_904_lock; exit" SIGHUP SIGINT SIGTERM
 	#	lock it up
 	if [ -f $processing_904_lock ];
 	then
