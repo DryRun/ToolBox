@@ -7,46 +7,27 @@ sys.path.append(pathToUtilities)
 from rootio.parser import Parser
 from layout import *
 import logging
-
 import utilities.shell_functions as shell
-import utilities.re_functions as res
-from monitorables import allgroups, analysis_tasks, variables 
-
-#   skip list - whatever you would like to skip
-skip_list = [("DigiTask", "Occupancy", "depth"), ("RawTask", "BadQuality", "depth"),
-    ("RawTask", "BcnMsm", "Electronics"),
-    ("RawTask", "OrnMsm", "Electronics"),
-    ("RawTask", "EvnMsm", "Electronics")]
 
 def relink(subsystem, layoutbase, objs, out, agroups, detail):
-        logging.debug("Starting the Relinking and Grouping")
 	for path in objs.keys():
-		logging.debug(subsystem+path)
-		d = res.match_path(path)
-		task = d["module"]
-		if task not in analysis_tasks.keys() or d["variable"]==None<2:
+		print subsystem+path
+		r = match_path(path)
+		groups = r.groups()
+		task = groups[0]
+		if task not in analysis_tasks.keys() or len(groups)<2:
 			#	if not one of my tasks or if it's a xml object
 			continue
-
 		module = analysis_tasks[task]
-		var = d["variable"]
+		var = groups[1]
 		if var not in variables[module].keys():
 			#	if this variable is not in the list of monitorables
 			#	for this task continue
-			logging.debug("Missing Monitorable for path %s" % path)
+			print "Missing Monitorable for path %s" % path
 			continue
 
-                #   apply skip list
-                qqq = False
-                for sk in skip_list:
-                    if task==sk[0] and var==sk[1] and d["hasher"]==sk[2]:
-                        qqq = True
-                        break
-                if qqq: continue
-
 		#	first relink all the MEs
-                logging.debug("Relinking")
-		if d["variable"]!=None and d["hasher"]=="NOHASHER":
+		if len(groups)==2:
 			#	if it's a single ME
 			for i in range(len(objs[path])):
 				name = objs[path][i].GetName()
@@ -74,7 +55,7 @@ def relink(subsystem, layoutbase, objs, out, agroups, detail):
 					if nms+nskipped==len(g.tokens.keys()):
 						g.add(p)
 		else:
-			hasher = d["hasher"]
+			hasher = groups[2]
 			for o in objs[path]:
 				p = Plot(subsystem+path+"/%s" % o.GetName(),
 					variables[module][var])
@@ -104,7 +85,7 @@ def relink(subsystem, layoutbase, objs, out, agroups, detail):
 
 
 def group(layoutbase, out, detail, groups):
-        logging.debug("### Generating Groups!")
+	print "### Generating Groups!"
 	skipList = []
 	for g in groups:
 		#	this is for uniting groups or skipping the empty groups
@@ -117,7 +98,7 @@ def group(layoutbase, out, detail, groups):
 		#	create a layout out of a group...
 		if not g.include(detail): continue
 		l = Layout(g.name, layoutbase, g.dump())
-		logging.debug(g.name)
+		print g.name
 		out.write("\n%s\n" % l)
 
 def main():
@@ -128,11 +109,11 @@ def main():
         #   Set up soem settings
         #
 	filelist = [
-            "/Users/vk/software/HCALDQM/tmp/DQM_V0001_R000281613__StreamExpress__Run2016H-Express-v2__DQMIO.root"]
-	outname = "/Users/vk/software/HCALDQM/tmp/hcal_T0_layouts.py"
+            "/Users/vk/software/HCALDQM/tmp/DQM_V0001_R000165121__Global__CMSSW_X_Y_Z__RECO.root"]
+	outname = "/Users/vk/software/HCALDQM/tmp/layouts_test.py"
 	physcalib = "physics"
-	detail = 1
-	layoutbase = "hcallayout"
+	forshifters = 0
+	layoutbase = "test"
         convention = "Offline"
 	out = open(outname, "w")
 	out.write(
@@ -143,7 +124,7 @@ def main():
 	dqmitems={}""")
 	out.write("\n\n")
 	users = "Hcal"
-	if detail==0:
+	if forshifters==1:
 		users="00 Shift"
 		if physcalib=="calibration":
 			mainsubsystem = "HcalCalib"
@@ -173,9 +154,10 @@ def main():
 		logging.debug("Will parse ROOT file: %s, subsystem %s" % (filename, subsystem))
 		parser = Parser(pathfile=f, subsystem=subsystem, convention=convention)
 		os = parser.traverse()
-		relink(subsystem, layoutbase, os, out, allgroups[physcalib],detail)
-		objs.update(os)
-	group(layoutbase, out, detail, allgroups[physcalib])
+                print os
+#		relink(subsystem, layoutbase, os, out,allgroups[physcalib],forshifters)
+#		objs.update(os)
+#	group(layoutbase, out, forshifters, allgroups[physcalib])
 
 	# close the output file
 	out.close()
